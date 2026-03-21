@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  PARTICULIER
+  PROFESSIONNEL
+}
+
+enum CompanyStatus {
+  ACTIVE
+  RADIEE
+  EN_ATTENTE
+}
+
+enum InsuranceStatus {
+  NON_VERIFIEE
+  EN_COURS
+  VERIFIEE
+  EXPIREE
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  avatar        String?
+  role          UserRole
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  professional    Professional?
+  reviewsGiven    Review[]         @relation("ReviewAuthor")
+  sentMessages    Message[]        @relation("MessageSender")
+  conversations   ConversationParticipant[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+// ============================================================
+// PROFESSIONAL PROFILE
+// ============================================================
+
+model Professional {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Informations entreprise (depuis API SIRENE)
+  siren           String          @unique
+  siret           String?
+  companyName     String
+  legalForm       String?         // Forme juridique
+  activityCode    String?         // Code NAF/APE
+  activityLabel   String?         // Libellé activité
+  companyStatus   CompanyStatus   @default(ACTIVE)
+  registrationDate DateTime?
+
+  // Informations professionnelles
+  description     String?         @db.Text
+  specialties     String[]        // Spécialités
+  serviceArea     String?         // Zone d'intervention
+  address         String?
+  city            String?
+  postalCode      String?
+  latitude        Float?
+  longitude       Float?
+  website         String?
+
+  // Assurance
+  insuranceStatus   InsuranceStatus @default(NON_VERIFIEE)
+  insuranceCompany  String?
+  insuranceNumber   String?
+  insuranceExpiry   DateTime?
+  insuranceDocument String?         // URL du document
+
+  // Stats
+  averageRating   Float           @default(0)
+  totalReviews    Int             @default(0)
+  responseRate    Float           @default(0)
+  responseTime    Int?            // en minutes
+
+  isActive        Boolean         @default(true)
+  isVerified      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  reviews         Review[]
+  categories      ProfessionalCategory[]
+
+  @@index([city])
+  @@index([postalCode])
+  @@index([activityCode])
+  @@index([averageRating])
+  @@map("professionals")
+}
+
+// ============================================================
+// CATEGORIES
+// ============================================================
+
+model Category {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  slug          String    @unique
+  description   String?
+  icon          String?
+  parentId      String?
+  parent        Category? @relation("CategoryChildren", fields: [parentId], references: [id])
+  children      Category[] @relation("CategoryChildren")
+  professionals ProfessionalCategory[]
+
+  @@map("categories")
+}
+
+model ProfessionalCategory {
+  professionalId String
+  categoryId     String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([professionalId, categoryId])
+  @@map("professional_categories")
+}
+
+// ============================================================
+// REVIEWS / AVIS
+// ============================================================
+
+model Review {
+  id              String       @id @default(cuid())
+  rating          Int          // 1-5
+  title           String?
+  comment         String       @db.Text
+  response        String?      @db.Text  // Réponse du pro
+
+  authorId        String
+  author          User         @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  professionalId  String
+  professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  isVerified      Boolean      @default(false) // Avis vérifié (transaction réelle)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([professionalId])
+  @@index([authorId])
+  @@map("reviews")
+}
+
+// ============================================================
+// MESSAGING / MESSAGERIE
+// ============================================================
+
+model Conversation {
+  id            String               @id @default(cuid())
+  subject       String?
+  status        ConversationStatus   @default(ACTIVE)
+  lastMessageAt DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  userId         String
+  conversationId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  unreadCount    Int          @default(0)
+  lastReadAt     DateTime?
+  joinedAt       DateTime     @default(now())
+
+  @@id([userId, conversationId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  content        String        @db.Text
+  status         MessageStatus @default(SENT)
+
+  senderId       String
+  sender         User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // NEW_MESSAGE, NEW_REVIEW, INSURANCE_VERIFIED, etc.
+  title     String
+  content   String?
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}
