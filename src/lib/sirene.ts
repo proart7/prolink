@@ -1,6 +1,6 @@
 /**
- * API SIRENE - Recherche d'entreprise par numéro SIREN/SIRET
- * Documentation: https://api.insee.fr/catalogue/site/themes/wso2/subthemes/developer/pages/item-info.jag?name=Sirene&version=V3&provider=insee
+ * API SIRENE - Recherche d'entreprise par num\u00e9ro SIREN/SIRET
+ * Utilise l'API Recherche d'Entreprises (api.gouv.fr) en fallback
  */
 
 export interface SireneCompany {
@@ -36,14 +36,14 @@ export async function searchSirene(sirenOrSiret: string): Promise<SireneResult> 
   if (!/^\d{9}$/.test(cleaned) && !/^\d{14}$/.test(cleaned)) {
     return {
       error: true,
-      message: "Le numéro doit contenir 9 chiffres (SIREN) ou 14 chiffres (SIRET)",
+      message: "Le num\u00e9ro doit contenir 9 chiffres (SIREN) ou 14 chiffres (SIRET)",
       code: "INVALID_FORMAT",
     };
   }
 
   const token = process.env.SIRENE_API_TOKEN;
 
-  // Si pas de token INSEE, on utilise l'API publique entreprise.data.gouv.fr
+  // Si pas de token INSEE, on utilise l'API publique recherche-entreprises
   if (!token) {
     return searchSirenePublic(cleaned);
   }
@@ -65,92 +65,103 @@ export async function searchSirene(sirenOrSiret: string): Promise<SireneResult> 
       if (response.status === 404) {
         return {
           error: true,
-          message: "Aucune entreprise trouvée avec ce numéro",
+          message: "Aucune entreprise trouv\u00e9e avec ce num\u00e9ro",
           code: "NOT_FOUND",
         };
       }
-      return {
-        error: true,
-        message: "Erreur lors de la recherche. Veuillez réessayer.",
-        code: "API_ERROR",
-      };
+      // Fallback to public API
+      return searchSirenePublic(cleaned);
     }
 
     const data = await response.json();
     return parseInseeResponse(data, isSiret);
   } catch {
-    return {
-      error: true,
-      message: "Impossible de contacter le service. Veuillez réessayer.",
-      code: "NETWORK_ERROR",
-    };
+    // Fallback to public API on network error
+    return searchSirenePublic(cleaned);
   }
 }
 
 /**
- * Fallback: API publique entreprise.data.gouv.fr (pas besoin de token)
+ * Fallback: API Recherche d'Entreprises (recherche-entreprises.api.gouv.fr)
+ * Gratuite, sans token, maintenue par la DINUM
  */
 async function searchSirenePublic(sirenOrSiret: string): Promise<SireneResult> {
-  const isSiret = sirenOrSiret.length === 14;
   const siren = sirenOrSiret.slice(0, 9);
+  const isSiret = sirenOrSiret.length === 14;
 
   try {
+    // API Recherche d'Entreprises - endpoint gratuit et officiel
     const response = await fetch(
-      `https://entreprise.data.gouv.fr/api/sirene/v3/unites_legales/${siren}`
+      `https://recherche-entreprises.api.gouv.fr/search?q=${siren}&mtm_campaign=prolink`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      }
     );
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return {
-          error: true,
-          message: "Aucune entreprise trouvée avec ce numéro",
-          code: "NOT_FOUND",
-        };
-      }
       return {
         error: true,
-        message: "Erreur lors de la recherche",
+        message: "Erreur lors de la recherche. Veuillez r\u00e9essayer.",
         code: "API_ERROR",
       };
     }
 
     const data = await response.json();
-    const unite = data.unite_legale;
 
-    if (!unite) {
-      return { error: true, message: "Données introuvables", code: "NO_DATA" };
+    if (!data.results || data.results.length === 0) {
+      return {
+        error: true,
+        message: "Aucune entreprise trouv\u00e9e avec ce num\u00e9ro",
+        code: "NOT_FOUND",
+      };
     }
 
-    // Vérifier si l'entreprise est radiée
-    const isRadiee = unite.etat_administratif === "C"; // C = cessée
+    // Trouver l'entreprise correspondant au SIREN exact
+    const entreprise = data.results.find(
+      (r: any) => r.siren === siren
+    ) || data.results[0];
 
-    // Récupérer la dénomination
-    const name =
-      unite.denomination ||
-      unite.nom_raison_sociale ||
-      `${unite.prenom_1 || ""} ${unite.nom || ""}`.trim();
+    if (!entreprise) {
+      return {
+        error: true,
+        message: "Aucune entreprise trouv\u00e9e avec ce num\u00e9ro",
+        code: "NOT_FOUND",
+      };
+    }
 
-    // Dernière période pour l'activité
-    const periode = unite.periodesUniteLegale?.[0];
-    const activityCode = periode?.activitePrincipaleUniteLegale || "";
+    const isRadiee = entreprise.etat_administratif === "C";
+
+    // R\u00e9cup\u00e9rer le si\u00e8ge social pour l'adresse
+    const siege = entreprise.siege || {};
+
+    // Trouver le SIRET du si\u00e8ge
+    const siretValue = isSiret
+      ? sirenOrSiret
+      : siege.siret || `${siren}00000`;
 
     return {
-      siren: siren,
-      siret: isSiret ? sirenOrSiret : `${siren}00000`,
-      companyName: name,
-      legalForm: unite.categorie_juridique || "",
-      activityCode: activityCode,
-      activityLabel: periode?.nomenclatureActivitePrincipaleUniteLegale || "",
-      address: "",
-      city: "",
-      postalCode: "",
+      siren: entreprise.siren || siren,
+      siret: siretValue,
+      companyName:
+        entreprise.nom_complet ||
+        entreprise.denomination ||
+        entreprise.nom_raison_sociale ||
+        "",
+      legalForm: entreprise.nature_juridique || "",
+      activityCode: entreprise.activite_principale || siege.activite_principale || "",
+      activityLabel: entreprise.libelle_activite_principale || siege.libelle_activite_principale || "",
+      address: siege.adresse || siege.geo_adresse || "",
+      city: siege.libelle_commune || siege.commune || "",
+      postalCode: siege.code_postal || "",
       status: isRadiee ? "radiee" : "active",
-      registrationDate: unite.date_creation || "",
+      registrationDate: entreprise.date_creation || "",
     };
   } catch {
     return {
       error: true,
-      message: "Impossible de contacter le service",
+      message: "Impossible de contacter le service. Veuillez r\u00e9essayer.",
       code: "NETWORK_ERROR",
     };
   }
@@ -171,7 +182,8 @@ function parseInseeResponse(data: any, isSiret: boolean): SireneResult {
           unite.denominationUniteLegale ||
           `${unite.prenom1UniteLegale || ""} ${unite.nomUniteLegale || ""}`.trim(),
         legalForm: unite.categorieJuridiqueUniteLegale || "",
-        activityCode: etab.periodesEtablissement?.[0]?.activitePrincipaleEtablissement || "",
+        activityCode:
+          etab.periodesEtablissement?.[0]?.activitePrincipaleEtablissement || "",
         activityLabel: "",
         address: `${adresse.numeroVoieEtablissement || ""} ${adresse.typeVoieEtablissement || ""} ${adresse.libelleVoieEtablissement || ""}`.trim(),
         city: adresse.libelleCommuneEtablissement || "",
@@ -203,7 +215,7 @@ function parseInseeResponse(data: any, isSiret: boolean): SireneResult {
   } catch {
     return {
       error: true,
-      message: "Erreur lors du traitement des données",
+      message: "Erreur lors du traitement des donn\u00e9es",
       code: "PARSE_ERROR",
     };
   }
