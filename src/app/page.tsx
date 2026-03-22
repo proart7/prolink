@@ -12,12 +12,12 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
-              La confiance au c\u0153ur de{" "}
+              La confiance au cœur de{" "}
               <span className="text-primary-200">chaque projet</span>
             </h1>
             <p className="text-lg sm:text-xl text-primary-100 mb-12 leading-relaxed max-w-2xl mx-auto">
-              ProLink met en relation particuliers et professionnels v\u00e9rifi\u00e9s.
-              Entreprises certifi\u00e9es via SIRENE, assurances contr\u00f4l\u00e9es, avis
+              ProLink met en relation particuliers et professionnels vérifiés.
+              Entreprises certifiées via SIRENE, assurances contrôlées, avis
               authentiques.
             </p>
             <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
@@ -33,7 +33,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Je suis un particulier</h3>
                 <p className="text-primary-100 text-sm mb-3">
-                  Trouvez des professionnels v\u00e9rifi\u00e9s pr\u00e8s de chez vous, consultez les
+                  Trouvez des professionnels vérifiés près de chez vous, consultez les
                   avis et contactez-les en toute confiance.
                 </p>
                 <span className="inline-flex items-center text-sm font-semibold text-white group-hover:gap-2 transition-all">
@@ -56,11 +56,11 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Je suis un professionnel</h3>
                 <p className="text-primary-100 text-sm mb-3">
-                  D\u00e9veloppez votre activit\u00e9, gagnez en visibilit\u00e9 et recevez des
-                  demandes de clients qualifi\u00e9s.
+                  Développez votre activité, gagnez en visibilité et recevez des
+                  demandes de clients qualifiés.
                 </p>
                 <span className="inline-flex items-center text-sm font-semibold text-white group-hover:gap-2 transition-all">
-                  Cr\u00e9er mon profil pro
+                  Créer mon profil pro
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -71,7 +71,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Comment \u00e7a marche - Particuliers */}
+      {/* Comment ça marche - Particuliers */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -79,7 +79,7 @@ export default function Home() {
               Pour les particuliers
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Trouvez le bon professionnel en 3 \u00e9tapes
+              Trouvez le bon professionnel en 3 étapes
             </h2>
           </div>
 
@@ -88,19 +88,19 @@ export default function Home() {
               {
                 step: "01",
                 title: "Recherchez",
-                desc: "Utilisez notre moteur de recherche pour trouver un professionnel par m\u00e9tier, ville ou sp\u00e9cialit\u00e9.",
+                desc: "Utilisez notre moteur de recherche pour trouver un professionnel par métier, ville ou spécialité.",
                 icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
               },
               {
                 step: "02",
-                title: "V\u00e9rifiez",
-                desc: "Consultez le profil, les avis clients et le statut de l\u2019assurance pour faire votre choix en confiance.",
+                title: "Vérifiez",
+                desc: "Consultez le profil, les avis clients et le statut de l’assurance pour faire votre choix en confiance.",
                 icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
               },
               {
                 step: "03",
                 title: "Contactez",
-                desc: "Envoyez un message directement au professionnel via notre messagerie s\u00e9curis\u00e9e.",
+                desc: "Envoyez un message directement au professionnel via notre messagerie sécurisée.",
                 icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z",
               },
             ].map((item) => (
@@ -110,7 +110,7 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
                   </svg>
                 </div>
-                <div className="text-sm font-bold text-primary-600 mb-2">\u00c9TAPE {item.step}</div>
+                <div className="text-sm font-bold text-primary-600 mb-2">ÉTAPE {item.step}</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
                 <p className="text-gray-600">{item.desc}</p>
               </div>
@@ -137,25 +137,25 @@ export default function Home() {
                 Pour les professionnels
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-                D\u00e9veloppez votre activit\u00e9 avec ProLink
+                Développez votre activité avec ProLink
               </h2>
               <div className="space-y-5">
                 {[
                   {
-                    title: "Profil v\u00e9rifi\u00e9 qui inspire confiance",
-                    desc: "Votre num\u00e9ro SIREN v\u00e9rifi\u00e9 rassure les particuliers et vous distingue.",
+                    title: "Profil vérifié qui inspire confiance",
+                    desc: "Votre numéro SIREN vérifié rassure les particuliers et vous distingue.",
                   },
                   {
-                    title: "Visibilit\u00e9 aupr\u00e8s de milliers de particuliers",
-                    desc: "Apparaissez dans les r\u00e9sultats de recherche de votre zone g\u00e9ographique.",
+                    title: "Visibilité auprès de milliers de particuliers",
+                    desc: "Apparaissez dans les résultats de recherche de votre zone géographique.",
                   },
                   {
-                    title: "Gestion de votre r\u00e9putation",
-                    desc: "Recevez des avis v\u00e9rifi\u00e9s et r\u00e9pondez directement \u00e0 vos clients.",
+                    title: "Gestion de votre réputation",
+                    desc: "Recevez des avis vérifiés et répondez directement à vos clients.",
                   },
                   {
                     title: "Messagerie directe",
-                    desc: "\u00c9changez avec vos clients potentiels via notre messagerie int\u00e9gr\u00e9e.",
+                    desc: "Échangez avec vos clients potentiels via notre messagerie intégrée.",
                   },
                 ].map((item) => (
                   <div key={item.title} className="flex gap-4">
@@ -178,7 +178,7 @@ export default function Home() {
                   href="/register/professionnel"
                   className="inline-flex items-center justify-center bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-all"
                 >
-                  Cr\u00e9er mon profil professionnel
+                  Créer mon profil professionnel
                 </Link>
               </div>
             </div>
@@ -190,16 +190,16 @@ export default function Home() {
               <div className="space-y-6">
                 {[
                   {
-                    title: "Entreprises v\u00e9rifi\u00e9es",
-                    desc: "Chaque professionnel est v\u00e9rifi\u00e9 via l\u2019API SIRENE. Les entreprises radi\u00e9es ne peuvent pas s\u2019inscrire.",
+                    title: "Entreprises vérifiées",
+                    desc: "Chaque professionnel est vérifié via l’API SIRENE. Les entreprises radiées ne peuvent pas s’inscrire.",
                   },
                   {
-                    title: "Assurance contr\u00f4l\u00e9e",
-                    desc: "Visualisez en un coup d\u2019\u0153il si l\u2019assurance professionnelle est v\u00e9rifi\u00e9e et \u00e0 jour.",
+                    title: "Assurance contrôlée",
+                    desc: "Visualisez en un coup d’œil si l’assurance professionnelle est vérifiée et à jour.",
                   },
                   {
                     title: "Avis authentiques",
-                    desc: "Des avis laiss\u00e9s par de vrais particuliers pour vous aider \u00e0 faire le bon choix.",
+                    desc: "Des avis laissés par de vrais particuliers pour vous aider à faire le bon choix.",
                   },
                   {
                     title: "100% gratuit",
@@ -230,10 +230,10 @@ export default function Home() {
       <section className="py-20 bg-primary-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Pr\u00eat \u00e0 commencer ?
+            Prêt à commencer ?
           </h2>
           <p className="text-primary-100 text-lg mb-8">
-            Rejoignez des milliers d&apos;utilisateurs qui font confiance \u00e0 ProLink
+            Rejoignez des milliers d&apos;utilisateurs qui font confiance à ProLink
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
