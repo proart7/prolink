@@ -81,7 +81,7 @@ export function Navbar() {
                         onClick={() => signOut({ callbackUrl: "/" })}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        D\u00e9connexion
+                        Déconnexion
                       </button>
                     </div>
                   )}
@@ -102,7 +102,7 @@ export function Navbar() {
                   {roleMenuOpen === "particulier" && (
                     <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                       <Link href="/register/particulier" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700" onClick={() => setRoleMenuOpen(null)}>
-                        Cr\u00e9er un compte
+                        Créer un compte
                       </Link>
                       <Link href="/login" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700" onClick={() => setRoleMenuOpen(null)}>
                         Se connecter
@@ -124,7 +124,7 @@ export function Navbar() {
                   {roleMenuOpen === "professionnel" && (
                     <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                       <Link href="/register/professionnel" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700" onClick={() => setRoleMenuOpen(null)}>
-                        Cr\u00e9er un compte pro
+                        Créer un compte pro
                       </Link>
                       <Link href="/login" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700" onClick={() => setRoleMenuOpen(null)}>
                         Se connecter
@@ -169,7 +169,7 @@ export function Navbar() {
                 Tableau de bord
               </Link>
               <button onClick={() => signOut({ callbackUrl: "/" })} className="text-red-600 font-medium py-2">
-                D\u00e9connexion
+                Déconnexion
               </button>
             </>
           ) : (
