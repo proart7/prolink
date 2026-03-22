@@ -26,6 +26,7 @@ interface ProfessionalProfile {
   responseRate: number;
   responseTime: number | null;
   user: {
+    id: string;
     firstName: string;
     lastName: string;
     avatar: string | null;
@@ -182,7 +183,7 @@ export default function ProfessionnelPage() {
               </div>
               {session?.user && (session.user as any).role === "PARTICULIER" && (
                 <Link
-                  href={`/messagerie?to=${profile.userId || ""}&name=${encodeURIComponent(profile.companyName)}`}
+                  href={`/messagerie?to=${profile.user?.id || ""}&name=${encodeURIComponent(profile.companyName)}`}
                   className="btn-primary text-sm"
                 >
                   Contacter
