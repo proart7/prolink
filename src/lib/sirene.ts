@@ -1,5 +1,5 @@
 /**
- * API SIRENE - Recherche d'entreprise par num\u00e9ro SIREN/SIRET
+ * API SIRENE - Recherche d'entreprise par numéro SIREN/SIRET
  * Utilise l'API Recherche d'Entreprises (api.gouv.fr) en fallback
  */
 
@@ -36,7 +36,7 @@ export async function searchSirene(sirenOrSiret: string): Promise<SireneResult> 
   if (!/^\d{9}$/.test(cleaned) && !/^\d{14}$/.test(cleaned)) {
     return {
       error: true,
-      message: "Le num\u00e9ro doit contenir 9 chiffres (SIREN) ou 14 chiffres (SIRET)",
+      message: "Le numéro doit contenir 9 chiffres (SIREN) ou 14 chiffres (SIRET)",
       code: "INVALID_FORMAT",
     };
   }
@@ -65,7 +65,7 @@ export async function searchSirene(sirenOrSiret: string): Promise<SireneResult> 
       if (response.status === 404) {
         return {
           error: true,
-          message: "Aucune entreprise trouv\u00e9e avec ce num\u00e9ro",
+          message: "Aucune entreprise trouvée avec ce numéro",
           code: "NOT_FOUND",
         };
       }
@@ -103,7 +103,7 @@ async function searchSirenePublic(sirenOrSiret: string): Promise<SireneResult> {
     if (!response.ok) {
       return {
         error: true,
-        message: "Erreur lors de la recherche. Veuillez r\u00e9essayer.",
+        message: "Erreur lors de la recherche. Veuillez réessayer.",
         code: "API_ERROR",
       };
     }
@@ -113,7 +113,7 @@ async function searchSirenePublic(sirenOrSiret: string): Promise<SireneResult> {
     if (!data.results || data.results.length === 0) {
       return {
         error: true,
-        message: "Aucune entreprise trouv\u00e9e avec ce num\u00e9ro",
+        message: "Aucune entreprise trouvée avec ce numéro",
         code: "NOT_FOUND",
       };
     }
@@ -126,17 +126,17 @@ async function searchSirenePublic(sirenOrSiret: string): Promise<SireneResult> {
     if (!entreprise) {
       return {
         error: true,
-        message: "Aucune entreprise trouv\u00e9e avec ce num\u00e9ro",
+        message: "Aucune entreprise trouvée avec ce numéro",
         code: "NOT_FOUND",
       };
     }
 
     const isRadiee = entreprise.etat_administratif === "C";
 
-    // R\u00e9cup\u00e9rer le si\u00e8ge social pour l'adresse
+    // Récupérer le siège social pour l'adresse
     const siege = entreprise.siege || {};
 
-    // Trouver le SIRET du si\u00e8ge
+    // Trouver le SIRET du siège
     const siretValue = isSiret
       ? sirenOrSiret
       : siege.siret || `${siren}00000`;
@@ -161,7 +161,7 @@ async function searchSirenePublic(sirenOrSiret: string): Promise<SireneResult> {
   } catch {
     return {
       error: true,
-      message: "Impossible de contacter le service. Veuillez r\u00e9essayer.",
+      message: "Impossible de contacter le service. Veuillez réessayer.",
       code: "NETWORK_ERROR",
     };
   }
@@ -215,7 +215,7 @@ function parseInseeResponse(data: any, isSiret: boolean): SireneResult {
   } catch {
     return {
       error: true,
-      message: "Erreur lors du traitement des donn\u00e9es",
+      message: "Erreur lors du traitement des données",
       code: "PARSE_ERROR",
     };
   }
