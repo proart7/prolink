@@ -9,7 +9,12 @@ export const registerParticulierSchema = z.object({
   firstName: z.string().min(2, "Minimum 2 caractères"),
   lastName: z.string().min(2, "Minimum 2 caractères"),
   email: z.string().email("Email invalide"),
-  phone: z.string().optional(),
+  phone: z.string().regex(/^0[1-9]\d{8}$/, "Numéro de téléphone invalide"),
+  commune: z.string().min(1, "Commune requise"),
+  communeCode: z.string().optional(),
+  postalCode: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   password: z
     .string()
     .min(8, "Minimum 8 caractères")
@@ -25,7 +30,7 @@ export const registerProfessionnelSchema = z.object({
   firstName: z.string().min(2, "Minimum 2 caractères"),
   lastName: z.string().min(2, "Minimum 2 caractères"),
   email: z.string().email("Email invalide"),
-  phone: z.string().optional(),
+  phone: z.string().regex(/^0[1-9]\d{8}$/, "Numéro de téléphone invalide"),
   password: z
     .string()
     .min(8, "Minimum 8 caractères")
@@ -35,9 +40,21 @@ export const registerProfessionnelSchema = z.object({
   siren: z
     .string()
     .regex(/^\d{9}$|^\d{14}$/, "SIREN (9 chiffres) ou SIRET (14 chiffres)"),
-  description: z.string().optional(),
+  description: z.string().min(20, "Minimum 20 caractères"),
   specialties: z.array(z.string()).optional(),
   serviceArea: z.string().optional(),
+  nafCode: z.string().optional(),
+  communes: z
+    .array(
+      z.object({
+        nom: z.string(),
+        code: z.string(),
+        postalCode: z.string().optional(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+      })
+    )
+    .optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
