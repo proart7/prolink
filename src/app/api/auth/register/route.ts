@@ -42,7 +42,12 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        user: { id: user.id, email: user.email, role: user.role },
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          commune: validated.commune,
+        },
       });
     }
 
@@ -95,6 +100,18 @@ export async function POST(request: NextRequest) {
 
       const hashedPassword = await bcrypt.hash(validated.password, 12);
 
+      // Extract latitude and longitude from the first commune if available
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+      let serviceAreaJson: string | undefined;
+
+      if (validated.communes && validated.communes.length > 0) {
+        const firstCommune = validated.communes[0];
+        if (firstCommune.lat !== undefined) latitude = firstCommune.lat;
+        if (firstCommune.lng !== undefined) longitude = firstCommune.lng;
+        serviceAreaJson = JSON.stringify(validated.communes);
+      }
+
       // Créer l'utilisateur et le profil pro en une transaction
       const user = await prisma.user.create({
         data: {
@@ -110,7 +127,7 @@ export async function POST(request: NextRequest) {
               siret: sireneResult.siret || undefined,
               companyName: sireneResult.companyName,
               legalForm: sireneResult.legalForm || undefined,
-              activityCode: sireneResult.activityCode || undefined,
+              activityCode: validated.nafCode || sireneResult.activityCode || undefined,
               activityLabel: sireneResult.activityLabel || undefined,
               companyStatus: "ACTIVE",
               registrationDate: sireneResult.registrationDate
@@ -119,9 +136,11 @@ export async function POST(request: NextRequest) {
               address: sireneResult.address || undefined,
               city: sireneResult.city || undefined,
               postalCode: sireneResult.postalCode || undefined,
-              description: validated.description || undefined,
+              description: validated.description,
               specialties: validated.specialties || [],
-              serviceArea: validated.serviceArea || undefined,
+              serviceArea: serviceAreaJson || validated.serviceArea || undefined,
+              latitude: latitude,
+              longitude: longitude,
             },
           },
         },
