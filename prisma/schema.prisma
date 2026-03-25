@@ -58,11 +58,11 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  professional    Professional?
-  reviewsGiven    Review[]         @relation("ReviewAuthor")
-  sentMessages    Message[]        @relation("MessageSender")
-  conversations   ConversationParticipant[]
-  notifications   Notification[]
+  professional  Professional?
+  reviewsGiven  Review[]       @relation("ReviewAuthor")
+  sentMessages  Message[]      @relation("MessageSender")
+  conversations ConversationParticipant[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -72,52 +72,52 @@ model User {
 // ============================================================
 
 model Professional {
-  id              String          @id @default(cuid())
-  userId          String          @unique
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Informations entreprise (depuis API SIRENE)
-  siren           String          @unique
+  siren           String        @unique
   siret           String?
   companyName     String
-  legalForm       String?         // Forme juridique
-  activityCode    String?         // Code NAF/APE
-  activityLabel   String?         // Libellé activité
-  companyStatus   CompanyStatus   @default(ACTIVE)
+  legalForm       String?       // Forme juridique
+  activityCode    String?       // Code NAF/APE
+  activityLabel   String?       // Libellé activité
+  companyStatus   CompanyStatus @default(ACTIVE)
   registrationDate DateTime?
 
   // Informations professionnelles
-  description     String?         @db.Text
-  specialties     String[]        // Spécialités
-  serviceArea     String?         // Zone d'intervention
-  address         String?
-  city            String?
-  postalCode      String?
-  latitude        Float?
-  longitude       Float?
-  website         String?
+  description   String?   @db.Text
+  specialties   String[]  // Spécialités
+  serviceArea   String?   // Zone d'intervention
+  address       String?
+  city          String?
+  postalCode    String?
+  latitude      Float?
+  longitude     Float?
+  website       String?
 
   // Assurance
   insuranceStatus   InsuranceStatus @default(NON_VERIFIEE)
   insuranceCompany  String?
   insuranceNumber   String?
   insuranceExpiry   DateTime?
-  insuranceDocument String?         // URL du document
+  insuranceDocument String?   // URL du document
 
   // Stats
-  averageRating   Float           @default(0)
-  totalReviews    Int             @default(0)
-  responseRate    Float           @default(0)
-  responseTime    Int?            // en minutes
+  averageRating Float   @default(0)
+  totalReviews  Int     @default(0)
+  responseRate  Float   @default(0)
+  responseTime  Int?    // en minutes
 
-  isActive        Boolean         @default(true)
-  isVerified      Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  isActive    Boolean  @default(true)
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  reviews         Review[]
-  categories      ProfessionalCategory[]
+  reviews    Review[]
+  categories ProfessionalCategory[]
 
   @@index([city])
   @@index([postalCode])
@@ -131,14 +131,16 @@ model Professional {
 // ============================================================
 
 model Category {
-  id            String    @id @default(cuid())
-  name          String    @unique
-  slug          String    @unique
-  description   String?
-  icon          String?
-  parentId      String?
-  parent        Category? @relation("CategoryChildren", fields: [parentId], references: [id])
-  children      Category[] @relation("CategoryChildren")
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  icon        String?
+
+  parentId String?
+  parent   Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryChildren")
+
   professionals ProfessionalCategory[]
 
   @@map("categories")
@@ -147,8 +149,9 @@ model Category {
 model ProfessionalCategory {
   professionalId String
   categoryId     String
-  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
-  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@id([professionalId, categoryId])
   @@map("professional_categories")
@@ -159,20 +162,20 @@ model ProfessionalCategory {
 // ============================================================
 
 model Review {
-  id              String       @id @default(cuid())
-  rating          Int          // 1-5
-  title           String?
-  comment         String       @db.Text
-  response        String?      @db.Text  // Réponse du pro
+  id       String  @id @default(cuid())
+  rating   Int     // 1-5
+  title    String?
+  comment  String  @db.Text
+  response String? @db.Text  // Réponse du pro
 
-  authorId        String
-  author          User         @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  professionalId  String
-  professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
-  isVerified      Boolean      @default(false) // Avis vérifié (transaction réelle)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  isVerified Boolean  @default(false)  // Avis vérifié (transaction réelle)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([professionalId])
   @@index([authorId])
@@ -184,15 +187,15 @@ model Review {
 // ============================================================
 
 model Conversation {
-  id            String               @id @default(cuid())
+  id            String             @id @default(cuid())
   subject       String?
-  status        ConversationStatus   @default(ACTIVE)
+  status        ConversationStatus @default(ACTIVE)
   lastMessageAt DateTime?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
-  participants  ConversationParticipant[]
-  messages      Message[]
+  participants ConversationParticipant[]
+  messages     Message[]
 
   @@map("conversations")
 }
@@ -200,27 +203,29 @@ model Conversation {
 model ConversationParticipant {
   userId         String
   conversationId String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  unreadCount    Int          @default(0)
-  lastReadAt     DateTime?
-  joinedAt       DateTime     @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  unreadCount Int      @default(0)
+  lastReadAt  DateTime?
+  joinedAt    DateTime @default(now())
 
   @@id([userId, conversationId])
   @@map("conversation_participants")
 }
 
 model Message {
-  id             String        @id @default(cuid())
-  content        String        @db.Text
-  status         MessageStatus @default(SENT)
+  id      String        @id @default(cuid())
+  content String        @db.Text
+  status  MessageStatus @default(SENT)
 
   senderId       String
-  sender         User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   conversationId String
-  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([conversationId])
   @@index([senderId])
@@ -232,16 +237,33 @@ model Message {
 // ============================================================
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // NEW_MESSAGE, NEW_REVIEW, INSURANCE_VERIFIED, etc.
-  title     String
-  content   String?
-  link      String?
-  isRead    Boolean  @default(false)
+  id      String  @id @default(cuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    String  // NEW_MESSAGE, NEW_REVIEW, INSURANCE_VERIFIED, etc.
+  title   String
+  content String?
+  link    String?
+  isRead  Boolean @default(false)
+
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@map("notifications")
+}
+
+// ============================================================
+// OTP VERIFICATION CODES
+// ============================================================
+model OtpCode {
+  id        String   @id @default(cuid())
+  target    String   // email address or phone number
+  code      String   // 6-digit code
+  type      String   // "email" or "phone"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([target, type])
+  @@map("otp_codes")
 }
