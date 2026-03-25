@@ -29,19 +29,15 @@ const NAF_CODES: Record<string, string> = {
   "4399C": "Autres travaux spécialisés divers",
 
   // Plomberie
-  "4321A": "Travaux d'installation d'eau et de gaz",
   "4399D": "Travaux de plomberie",
 
   // Électricité
-  "4322A": "Travaux d'installation d'équipements électriques",
   "4399E": "Travaux électriques",
 
   // Chauffage et climatisation
-  "4321B": "Travaux d'installation d'équipements thermiques",
   "4399F": "Travaux de chauffage et climatisation",
 
   // Décoration et peinture
-  "4334Z": "Travaux de peinture et vitrerie",
   "4399G": "Travaux de décoration intérieure",
 
   // Services à la personne
