@@ -179,7 +179,7 @@ export default function RegisterParticulier() {
 
   const verifyOtp = async () => {
     if (!otp || otp.length !== 6) {
-      setOtpError('Veuillez entrer un code à 6 chiffres');
+      setOtpError('Veuillez entrer un code Ã  6 chiffres');
       return;
     }
 
@@ -194,14 +194,14 @@ export default function RegisterParticulier() {
       });
 
       if (!response.ok) {
-        throw new Error('Code invalide ou expiré');
+        throw new Error('Code invalide ou expirÃ©');
       }
 
       setEmailVerified(true);
       setShowOtpInput(false);
       setOtp('');
     } catch (err) {
-      setOtpError(err instanceof Error ? err.message : 'Erreur lors de la vérification');
+      setOtpError(err instanceof Error ? err.message : 'Erreur lors de la vÃ©rification');
     } finally {
       setOtpLoading(false);
     }
@@ -211,7 +211,7 @@ export default function RegisterParticulier() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!firstName.trim()) newErrors.firstName = 'Prénom requis';
+    if (!firstName.trim()) newErrors.firstName = 'PrÃ©nom requis';
     if (!lastName.trim()) newErrors.lastName = 'Nom requis';
     if (!email.trim()) {
       newErrors.email = 'Email requis';
@@ -219,14 +219,14 @@ export default function RegisterParticulier() {
       newErrors.email = 'Email invalide';
     }
     if (!phone.trim()) {
-      newErrors.phone = 'Téléphone requis';
+      newErrors.phone = 'TÃ©lÃ©phone requis';
     } else if (!validatePhone(phone)) {
       newErrors.phone = 'Format invalide (06 ou 07)';
     }
     if (!password) {
       newErrors.password = 'Mot de passe requis';
     } else if (password.length < 8) {
-      newErrors.password = 'Au moins 8 caractères';
+      newErrors.password = 'Au moins 8 caractÃ¨res';
     }
     if (!confirmPassword) {
       newErrors.confirmPassword = 'Confirmation requise';
@@ -237,7 +237,7 @@ export default function RegisterParticulier() {
       newErrors.commune = 'Commune requise';
     }
     if (!emailVerified) {
-      newErrors.emailVerification = 'Email non vérifié';
+      newErrors.emailVerification = 'Email non vÃ©rifiÃ©';
     }
 
     setErrors(newErrors);
@@ -285,7 +285,7 @@ export default function RegisterParticulier() {
         throw new Error(data.message || 'Erreur lors de l\'inscription');
       }
 
-      setSuccess('Inscription réussie! Redirection...');
+      setSuccess('Inscription rÃ©ussie! Redirection...');
       setTimeout(() => {
         router.push('/login');
       }, 2000);
@@ -314,7 +314,7 @@ export default function RegisterParticulier() {
         <div className="card shadow-lg">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">ProLink</h1>
-            <p className="text-gray-600">Créez votre compte particulier</p>
+            <p className="text-gray-600">CrÃ©ez votre compte particulier</p>
           </div>
 
           {error && (
@@ -331,15 +331,15 @@ export default function RegisterParticulier() {
 
           {errors.emailVerification && (
             <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm">
-              Veuillez vérifier votre adresse email avant de continuer
+              Veuillez vÃ©rifier votre adresse email avant de continuer
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Prénom */}
+            {/* PrÃ©nom */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Prénom <span className="text-red-500">*</span>
+                PrÃ©nom <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -399,7 +399,7 @@ export default function RegisterParticulier() {
                     disabled={otpLoading || !email}
                     className="btn-secondary whitespace-nowrap"
                   >
-                    {otpLoading ? 'Envoi...' : 'Vérifier'}
+                    {otpLoading ? 'Envoi...' : 'VÃ©rifier'}
                   </button>
                 )}
               </div>
@@ -409,12 +409,12 @@ export default function RegisterParticulier() {
               {showOtpInput && !emailVerified && (
                 <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-xs text-gray-600 mb-2">
-                    Entrez le code de vérification envoyé à {email}
+                    Entrez le code de vÃ©rification envoyÃ© Ã  {email}
                   </p>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      maxLength="6"
+                      maxLength={6}
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="000000"
@@ -426,7 +426,7 @@ export default function RegisterParticulier() {
                       disabled={otpLoading || otp.length !== 6}
                       className="btn-primary whitespace-nowrap"
                     >
-                      {otpLoading ? 'Vérif...' : 'Vérifier'}
+                      {otpLoading ? 'VÃ©rif...' : 'VÃ©rifier'}
                     </button>
                   </div>
                   {otpError && <p className="text-red-500 text-xs mt-2">{otpError}</p>}
@@ -434,10 +434,10 @@ export default function RegisterParticulier() {
               )}
             </div>
 
-            {/* Téléphone */}
+            {/* TÃ©lÃ©phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Téléphone <span className="text-red-500">*</span>
+                TÃ©lÃ©phone <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
@@ -445,7 +445,7 @@ export default function RegisterParticulier() {
                 onChange={handlePhoneChange}
                 onBlur={handlePhoneBlur}
                 placeholder="06 12 34 56 78"
-                maxLength="14"
+                maxLength={14}
                 className={`input-field w-full ${errors.phone || phoneError ? 'border-red-500' : ''}`}
               />
               <p className="text-gray-500 text-xs mt-1">Format: 06 ou 07 suivi de 8 chiffres</p>
@@ -465,14 +465,14 @@ export default function RegisterParticulier() {
                   value={commune}
                   onChange={handleCommuneChange}
                   onFocus={() => commune && setShowCommunes(true)}
-                  placeholder="Commencez à taper..."
+                  placeholder="Commencez Ã  taper..."
                   className={`input-field w-full ${
                     errors.commune ? 'border-red-500' : ''
                   } ${communeData ? 'bg-green-50' : ''}`}
                 />
                 {communeLoading && (
                   <div className="absolute right-3 top-3 text-gray-400">
-                    <div className="animate-spin">⚙</div>
+                    <div className="animate-spin">â</div>
                   </div>
                 )}
                 {communeData && (
@@ -516,7 +516,7 @@ export default function RegisterParticulier() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
                   className={`input-field w-full pr-10 ${errors.password ? 'border-red-500' : ''}`}
                 />
                 <button
@@ -524,7 +524,7 @@ export default function RegisterParticulier() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? '👁' : '👁‍🗨'}
+                  {showPassword ? 'ð' : 'ðâð¨'}
                 </button>
               </div>
               {password && (
@@ -556,7 +556,7 @@ export default function RegisterParticulier() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
                   className={`input-field w-full pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                 />
                 <button
@@ -564,7 +564,7 @@ export default function RegisterParticulier() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? '👁' : '👁‍🗨'}
+                  {showConfirmPassword ? 'ð' : 'ðâð¨'}
                 </button>
               </div>
               {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
@@ -576,7 +576,7 @@ export default function RegisterParticulier() {
               disabled={loading || !emailVerified}
               className="btn-primary w-full mt-6"
             >
-              {loading ? 'Inscription en cours...' : 'Créer mon compte'}
+              {loading ? 'Inscription en cours...' : 'CrÃ©er mon compte'}
             </button>
           </form>
 
