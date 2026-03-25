@@ -1,354 +1,296 @@
-import { NextRequest, NextResponse } from "next/server";
-import { otpStore } from "@/lib/otp-store";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-// In-memory rate limiter: tracks OTP requests per identifier
-const rateLimitStore = new Map<string, number[]>();
+// Constants
+const OTP_LENGTH = 6;
+const OTP_EXPIRY_MINUTES = 10;
+const RATE_LIMIT_MINUTES = 5;
+const RATE_LIMIT_MAX = 3;
 
-function generateOtpCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function isRateLimited(identifier: string, maxRequests: number = 3, windowMs: number = 5 * 60 * 1000): boolean {
-  const now = Date.now();
-  const timestamps = rateLimitStore.get(identifier) || [];
-
-  // Remove timestamps outside the window
-  const validTimestamps = timestamps.filter((ts) => now - ts < windowMs);
-
-  if (validTimestamps.length >= maxRequests) {
-    return true;
-  }
-
-  // Add current request timestamp
-  validTimestamps.push(now);
-  rateLimitStore.set(identifier, validTimestamps);
-
-  return false;
-}
-
-function validateEmail(email: string): boolean {
+// Email validation
+function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
-function validateFrenchPhone(phone: string): boolean {
-  // French phone: 06 or 07 followed by 8 digits
-  const cleanPhone = phone.replace(/[\s\-().]/g, "");
-  const phoneRegex = /^(?:0[67])(?:\d{8})$/;
-  return phoneRegex.test(cleanPhone);
+// French phone number validation (06 or 07 followed by 8 digits)
+function isValidFrenchPhone(phone: string): boolean {
+  const cleaned = phone.replace(/\D/g, '');
+  const phoneRegex = /^(06|07)\d{8}$/;
+  return phoneRegex.test(cleaned);
 }
 
+// Clean phone number to keep only digits
 function cleanPhoneNumber(phone: string): string {
-  return phone.replace(/[\s\-().]/g, "");
+  return phone.replace(/\D/g, '');
 }
 
-interface ResendEmailResponse {
-  id?: string;
-  error?: string;
+// Generate random 6-digit OTP code
+function generateOtpCode(): string {
+  const code = Math.floor(Math.random() * 1000000);
+  return String(code).padStart(OTP_LENGTH, '0');
 }
 
-interface TwilioSmsResponse {
-  sid?: string;
-  error_code?: string;
-  message?: string;
+// Check rate limiting
+async function checkRateLimit(target: string, type: 'email' | 'phone'): Promise<{ allowed: boolean; count: number }> {
+  const fiveMinutesAgo = new Date(Date.now() - RATE_LIMIT_MINUTES * 60 * 1000);
+
+  const count = await prisma.otpCode.count({
+    where: {
+      target,
+      type,
+      createdAt: {
+        gte: fiveMinutesAgo,
+      },
+    },
+  });
+
+  return {
+    allowed: count < RATE_LIMIT_MAX,
+    count,
+  };
 }
 
-async function sendEmailViaResend(
-  email: string,
-  code: string,
-): Promise<{ success: boolean; error?: string }> {
+// Send OTP via Resend (email)
+async function sendOtpViaResend(email: string, code: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
 
-  // Fall back to console if no API key
   if (!apiKey) {
-    console.log(`[OTP - Development Mode] Email: ${email}, Code: ${code}`);
-    return { success: true };
+    console.log(`[DEV MODE] Resend API key not configured. OTP code for ${email}: ${code}`);
+    return true;
   }
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>ProLink - Code de vérification</title>
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-          line-height: 1.6;
-          color: #333;
-          background-color: #f9fafb;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          overflow: hidden;
-        }
-        .header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 32px 24px;
-          text-align: center;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 700;
-        }
-        .content {
-          padding: 32px 24px;
-        }
-        .content p {
-          margin: 0 0 16px 0;
-          font-size: 16px;
-        }
-        .code-box {
-          background-color: #f3f4f6;
-          border: 2px solid #667eea;
-          border-radius: 8px;
-          padding: 24px;
-          text-align: center;
-          margin: 24px 0;
-        }
-        .code-box .code {
-          font-size: 36px;
-          font-weight: 700;
-          letter-spacing: 4px;
-          color: #667eea;
-          font-family: 'Courier New', monospace;
-        }
-        .code-box .note {
-          font-size: 14px;
-          color: #666;
-          margin-top: 12px;
-        }
-        .footer {
-          background-color: #f9fafb;
-          padding: 24px;
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-          border-top: 1px solid #e5e7eb;
-        }
-        .footer p {
-          margin: 0;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>ProLink</h1>
-        </div>
-        <div class="content">
-          <p>Bonjour,</p>
-          <p>Vous avez demandé un code de vérification pour accéder à votre compte ProLink.</p>
-          <div class="code-box">
-            <div class="code">${code}</div>
-            <div class="note">Ce code expire dans 5 minutes</div>
-          </div>
-          <p>Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email en toute sécurité.</p>
-          <p>Cordialement,<br>L'équipe ProLink</p>
-        </div>
-        <div class="footer">
-          <p>&copy; 2026 ProLink. Tous droits réservés.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
   try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: "ProLink <onboarding@resend.dev>",
+        from: 'ProLink <onboarding@resend.dev>',
         to: email,
-        subject: "ProLink - Votre code de vérification",
-        html: htmlContent,
+        subject: 'Votre code de vérification ProLink',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: Arial, sans-serif; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background-color: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+                .code-box { background-color: #ffffff; border: 2px solid #007bff; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }
+                .code { font-size: 36px; font-weight: bold; letter-spacing: 5px; color: #007bff; font-family: monospace; }
+                .footer { font-size: 12px; color: #999; text-align: center; margin-top: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>ProLink</h1>
+                </div>
+                <div class="content">
+                  <p>Bonjour,</p>
+                  <p>Vous avez demandé un code de vérification pour accéder à votre compte ProLink. Veuillez utiliser le code ci-dessous :</p>
+                  <div class="code-box">
+                    <div class="code">${code}</div>
+                  </div>
+                  <p>Ce code expirera dans ${OTP_EXPIRY_MINUTES} minutes.</p>
+                  <p>Si vous n'avez pas demandé ce code, veuillez ignorer cet e-mail.</p>
+                  <p>Cordialement,<br/>L'équipe ProLink</p>
+                  <div class="footer">
+                    <p>© 2026 ProLink. Tous droits réservés.</p>
+                  </div>
+                </div>
+              </div>
+            </body>
+          </html>
+        `,
       }),
     });
 
     if (!response.ok) {
-      const errorData = (await response.json()) as ResendEmailResponse;
-      console.error("Resend API error:", errorData);
-      return {
-        success: false,
-        error: "Erreur lors de l'envoi de l'email",
-      };
+      const error = await response.json();
+      console.error('Resend API error:', error);
+      return false;
     }
 
-    return { success: true };
+    return true;
   } catch (error) {
-    console.error("Email send exception:", error);
-    return {
-      success: false,
-      error: "Erreur lors de l'envoi de l'email",
-    };
+    console.error('Error sending email via Resend:', error);
+    return false;
   }
 }
 
-async function sendSmsViaTwilio(
-  phone: string,
-  code: string,
-): Promise<{ success: boolean; error?: string }> {
+// Send OTP via Twilio (SMS)
+async function sendOtpViaTwilio(phone: string, code: string): Promise<boolean> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
-  // Fall back to console if Twilio credentials are not set
-  if (!accountSid || !authToken || !twilioPhoneNumber) {
-    console.log(`[OTP - Development Mode] Phone: ${phone}, Code: ${code}`);
-    return { success: true };
+  if (!accountSid || !authToken || !fromNumber) {
+    console.log(`[DEV MODE] Twilio credentials not configured. OTP code for ${phone}: ${code}`);
+    return true;
   }
 
-  const message = `Votre code de vérification ProLink est: ${code}. Valable 5 minutes.`;
-
   try {
-    const authHeader = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+    const authHeader = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${authHeader}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          From: twilioPhoneNumber,
-          To: phone,
-          Body: message,
-        }).toString(),
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${authHeader}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-    );
+      body: new URLSearchParams({
+        To: phone,
+        From: fromNumber,
+        Body: `Votre code de vérification ProLink est : ${code}. Ce code expirera dans ${OTP_EXPIRY_MINUTES} minutes.`,
+      }).toString(),
+    });
 
     if (!response.ok) {
-      const errorData = (await response.json()) as TwilioSmsResponse;
-      console.error("Twilio API error:", errorData);
-      return {
-        success: false,
-        error: "Erreur lors de l'envoi du SMS",
-      };
+      const error = await response.json();
+      console.error('Twilio API error:', error);
+      return false;
     }
 
-    return { success: true };
+    return true;
   } catch (error) {
-    console.error("SMS send exception:", error);
-    return {
-      success: false,
-      error: "Erreur lors de l'envoi du SMS",
-    };
+    console.error('Error sending SMS via Twilio:', error);
+    return false;
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+// Main route handler
+export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      email?: string;
-      phone?: string;
-      type?: string;
-    };
+    const body = await request.json();
     const { email, phone, type } = body;
 
-    if (!type || (type !== "email" && type !== "phone")) {
+    // Validate type
+    if (!type || !['email', 'phone'].includes(type)) {
       return NextResponse.json(
-        { error: "Type invalide. Doit être 'email' ou 'phone'" },
-        { status: 400 },
+        { success: false, message: 'Type invalide. Utilisez "email" ou "phone".' },
+        { status: 400 }
       );
     }
 
-    if (type === "email") {
-      if (!email || typeof email !== "string") {
-        return NextResponse.json({ error: "Email requis" }, { status: 400 });
-      }
+    // Validate input based on type
+    let target: string;
 
-      if (!validateEmail(email)) {
+    if (type === 'email') {
+      if (!email || typeof email !== 'string') {
         return NextResponse.json(
-          { error: "Adresse email invalide" },
-          { status: 400 },
+          { success: false, message: 'Adresse e-mail requise.' },
+          { status: 400 }
         );
       }
 
-      // Check rate limit
-      if (isRateLimited(email)) {
+      if (!isValidEmail(email)) {
         return NextResponse.json(
-          {
-            error: "Trop de demandes. Veuillez réessayer dans 5 minutes",
-          },
-          { status: 429 },
+          { success: false, message: 'Adresse e-mail invalide.' },
+          { status: 400 }
         );
       }
 
-      const code = generateOtpCode();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      otpStore.set(email, { code, expiresAt });
-
-      const sendResult = await sendEmailViaResend(email, code);
-
-      if (!sendResult.success) {
-        return NextResponse.json({ error: sendResult.error }, { status: 500 });
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: "Code OTP envoyé avec succès",
-      });
-    } else if (type === "phone") {
-      if (!phone || typeof phone !== "string") {
-        return NextResponse.json({ error: "Numéro de téléphone requis" }, { status: 400 });
-      }
-
-      if (!validateFrenchPhone(phone)) {
+      target = email.toLowerCase();
+    } else {
+      // type === 'phone'
+      if (!phone || typeof phone !== 'string') {
         return NextResponse.json(
-          {
-            error: "Numéro de téléphone invalide. Format: 06XXXXXXXX ou 07XXXXXXXX",
-          },
-          { status: 400 },
+          { success: false, message: 'Numéro de téléphone requis.' },
+          { status: 400 }
         );
       }
 
-      const cleanPhone = cleanPhoneNumber(phone);
-
-      // Check rate limit
-      if (isRateLimited(cleanPhone)) {
+      if (!isValidFrenchPhone(phone)) {
         return NextResponse.json(
-          {
-            error: "Trop de demandes. Veuillez réessayer dans 5 minutes",
-          },
-          { status: 429 },
+          { success: false, message: 'Numéro de téléphone français invalide (06 ou 07).' },
+          { status: 400 }
         );
       }
 
-      const code = generateOtpCode();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      otpStore.set(cleanPhone, { code, expiresAt });
-
-      const sendResult = await sendSmsViaTwilio(cleanPhone, code);
-
-      if (!sendResult.success) {
-        return NextResponse.json({ error: sendResult.error }, { status: 500 });
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: "Code OTP envoyé avec succès",
-      });
+      target = cleanPhoneNumber(phone);
     }
 
-    return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
-  } catch (error) {
-    console.error("Send OTP error:", error);
+    // Check rate limiting
+    const { allowed, count } = await checkRateLimit(target, type);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Trop de tentatives. Veuillez réessayer dans ${RATE_LIMIT_MINUTES} minutes.`,
+          retryAfter: RATE_LIMIT_MINUTES * 60,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Generate OTP code
+    const code = generateOtpCode();
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    // Delete any existing unused OTP codes for this target+type
+    await prisma.otpCode.deleteMany({
+      where: {
+        target,
+        type,
+        used: false,
+      },
+    });
+
+    // Create new OTP code in database
+    await prisma.otpCode.create({
+      data: {
+        target,
+        code,
+        type,
+        expiresAt,
+        used: false,
+      },
+    });
+
+    // Send OTP via appropriate channel
+    let sendSuccess = false;
+
+    if (type === 'email') {
+      sendSuccess = await sendOtpViaResend(target, code);
+    } else {
+      sendSuccess = await sendOtpViaTwilio(target, code);
+    }
+
+    if (!sendSuccess) {
+      // Log the code for debugging
+      console.error(`Failed to send OTP via ${type} to ${target}. Code: ${code}`);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Erreur lors de l'envoi du code. Veuillez réessayer.`,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 },
+      {
+        success: true,
+        message: 'Code OTP envoyé avec succès',
+        target: type === 'email' ? target : `+33${target.substring(1)}`,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('OTP route error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Une erreur serveur est survenue. Veuillez réessayer.',
+      },
+      { status: 500 }
     );
   }
 }
