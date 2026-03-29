@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { filterDemoProfiles } from "@/data/demoProfiles";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -68,20 +69,50 @@ export async function GET(request: NextRequest) {
       prisma.professional.count({ where }),
     ]);
 
+    // Fusionner avec les profils démo filtrés
+    const demoResults = filterDemoProfiles({
+      query: query || undefined,
+      city: city || undefined,
+      minRating: minRating || undefined,
+      insuranceVerified: insuranceVerified || undefined,
+    });
+
+    // Les vrais profils d'abord, puis les démos
+    const allProfessionals = [...professionals, ...demoResults];
+    const totalWithDemo = total + demoResults.length;
+
+    // Pagination sur l'ensemble combiné
+    const paginatedResults = allProfessionals.slice(skip, skip + limit);
+
     return NextResponse.json({
-      professionals,
+      professionals: paginatedResults,
       pagination: {
-        total,
+        total: totalWithDemo,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(totalWithDemo / limit),
       },
     });
   } catch (error) {
     console.error("Search error:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la recherche" },
-      { status: 500 }
-    );
+
+    // En cas d'erreur DB, retourner au moins les profils démo
+    const demoResults = filterDemoProfiles({
+      query: query || undefined,
+      city: city || undefined,
+      minRating: minRating || undefined,
+      insuranceVerified: insuranceVerified || undefined,
+    });
+
+    return NextResponse.json({
+      professionals: demoResults.slice(skip, skip + limit),
+      pagination: {
+        total: demoResults.length,
+        page,
+        limit,
+        totalPages: Math.ceil(demoResults.length / limit),
+      },
+    });
   }
 }
+
