@@ -15,6 +15,9 @@ interface Professional {
   insuranceStatus: string;
   activityLabel: string | null;
   serviceArea: string | null;
+  isDemo?: boolean;
+  avatarColor?: string;
+  avatarInitials?: string;
   user: {
     firstName: string;
     lastName: string;
@@ -60,6 +63,11 @@ export default function RecherchePage() {
     }
   }, [query, city, minRating, insuranceOnly]);
 
+  // Charger tous les profils au chargement de la page
+  useEffect(() => {
+    search(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     search(1);
@@ -82,6 +90,18 @@ export default function RecherchePage() {
         ))}
       </div>
     );
+  };
+
+  const getAvatarStyle = (pro: Professional) => {
+    if (pro.avatarColor) {
+      return { backgroundColor: pro.avatarColor };
+    }
+    return {};
+  };
+
+  const getInitials = (pro: Professional) => {
+    if (pro.avatarInitials) return pro.avatarInitials;
+    return pro.companyName.charAt(0);
   };
 
   return (
@@ -172,7 +192,7 @@ export default function RecherchePage() {
           <div className="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
           <p className="mt-4 text-gray-600">Recherche en cours...</p>
         </div>
-      ) : searched && results.length === 0 ? (
+      ) : results.length === 0 ? (
         <div className="text-center py-12 card">
           <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -186,24 +206,24 @@ export default function RecherchePage() {
         </div>
       ) : (
         <>
-          {searched && (
-            <p className="text-sm text-gray-600 mb-4">
-              {total} professionnel{total > 1 ? "s" : ""} trouvé
-              {total > 1 ? "s" : ""}
-            </p>
-          )}
+          <p className="text-sm text-gray-600 mb-4">
+            {total} professionnel{total > 1 ? "s" : ""} trouvé
+            {total > 1 ? "s" : ""}
+          </p>
 
           <div className="grid gap-4">
             {results.map((pro) => (
-              <Link
+              <div
                 key={pro.id}
-                href={`/professionnel/${pro.id}`}
-                className="card p-6 flex flex-col sm:flex-row gap-4 hover:border-primary-200"
+                className="card p-6 flex flex-col sm:flex-row gap-4 hover:border-primary-200 transition-colors cursor-pointer"
               >
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center">
-                    <span className="text-primary-700 font-bold text-xl">
-                      {pro.companyName.charAt(0)}
+                  <div
+                    className="w-16 h-16 rounded-xl flex items-center justify-center"
+                    style={pro.avatarColor ? { backgroundColor: pro.avatarColor } : {}}
+                  >
+                    <span className="text-white font-bold text-xl" style={!pro.avatarColor ? { color: '#4F46E5' } : {}}>
+                      {getInitials(pro)}
                     </span>
                   </div>
                 </div>
@@ -219,16 +239,14 @@ export default function RecherchePage() {
                         {pro.postalCode && ` (${pro.postalCode})`}
                       </p>
                     </div>
-                    <div className="flex-shrink-0">
-                      {pro.insuranceStatus === "VERIFIEE" ? (
+                    <div className="flex-shrink-0 flex items-center gap-2">
+                      {pro.insuranceStatus === "VERIFIEE" && (
                         <span className="badge-verified">
                           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                           Assuré
                         </span>
-                      ) : (
-                        <span className="badge-unverified">Non vérifié</span>
                       )}
                     </div>
                   </div>
@@ -239,7 +257,7 @@ export default function RecherchePage() {
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 mt-3">
+                  <div className="flex flex-wrap items-center gap-4 mt-3">
                     <div className="flex items-center gap-1.5">
                       {renderStars(pro.averageRating)}
                       <span className="text-sm font-medium text-gray-700">
@@ -249,8 +267,8 @@ export default function RecherchePage() {
                         ({pro.totalReviews} avis)
                       </span>
                     </div>
-                    {pro.specialties.length > 0 && (
-                      <div className="flex gap-1.5">
+                    {pro.specialties && pro.specialties.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
                         {pro.specialties.slice(0, 3).map((s) => (
                           <span
                             key={s}
@@ -261,9 +279,18 @@ export default function RecherchePage() {
                         ))}
                       </div>
                     )}
+                    {pro.serviceArea && (
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {pro.serviceArea}
+                      </span>
+                    )}
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
 
@@ -290,3 +317,4 @@ export default function RecherchePage() {
     </div>
   );
 }
+
